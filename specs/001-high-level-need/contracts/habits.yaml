@@ -1,0 +1,514 @@
+paths:
+  /habits:
+    get:
+      summary: List habits
+      description: Get all habits for the authenticated user with optional filtering
+      tags:
+        - Habits
+      parameters:
+        - name: frequencyType
+          in: query
+          description: Filter by frequency type
+          schema:
+            type: string
+            enum: [DAILY, WEEKLY, CUSTOM_INTERVAL, MONTHLY, ADVANCED]
+        - name: categoryId
+          in: query
+          description: Filter by category
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Habits retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HabitWithStatus'
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+    
+    post:
+      summary: Create habit
+      description: Create a new habit with frequency configuration
+      tags:
+        - Habits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHabit'
+            examples:
+              daily:
+                value:
+                  title: Morning meditation
+                  frequencyType: DAILY
+                  frequencyConfig:
+                    allowMultiplePerDay: false
+                  categoryId: 550e8400-e29b-41d4-a716-446655440000
+              weekly:
+                value:
+                  title: Gym workout
+                  frequencyType: WEEKLY
+                  frequencyConfig:
+                    timesPerWeek: 3
+                    specificDays: [MON, WED, FRI]
+              customInterval:
+                value:
+                  title: Deep clean house
+                  frequencyType: CUSTOM_INTERVAL
+                  frequencyConfig:
+                    intervalDays: 7
+              monthly:
+                value:
+                  title: Financial review
+                  frequencyType: MONTHLY
+                  frequencyConfig:
+                    timesPerMonth: 1
+      responses:
+        '201':
+          description: Habit created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habit'
+        '400':
+          $ref: '../openapi.yaml#/responses/ValidationError'
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+  
+  /habits/{id}:
+    get:
+      summary: Get habit
+      description: Get a single habit by ID with completion history
+      tags:
+        - Habits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+        - name: from
+          in: query
+          description: Start date for completion history
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/ISODate'
+        - name: to
+          in: query
+          description: End date for completion history
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/ISODate'
+      responses:
+        '200':
+          description: Habit retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HabitWithStatus'
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+    
+    put:
+      summary: Update habit
+      description: Update an existing habit
+      tags:
+        - Habits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateHabit'
+      responses:
+        '200':
+          description: Habit updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habit'
+        '400':
+          $ref: '../openapi.yaml#/responses/ValidationError'
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+    
+    delete:
+      summary: Delete habit
+      description: Delete a habit and all its completions
+      tags:
+        - Habits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      responses:
+        '204':
+          description: Habit deleted successfully (no content)
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+  
+  /habits/{id}/completions:
+    post:
+      summary: Log completion
+      description: Log a completion for a habit
+      tags:
+        - Habits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHabitCompletion'
+      responses:
+        '201':
+          description: Completion logged successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HabitCompletion'
+        '400':
+          $ref: '../openapi.yaml#/responses/ValidationError'
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/responses/Forbidden'
+        '404':
+          description: Habit not found
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '409':
+          description: Completion already logged for this date/time
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+  
+  /habits/{id}/completions/{completionId}:
+    delete:
+      summary: Delete completion
+      description: Delete a habit completion
+      tags:
+        - Habits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+        - name: completionId
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      responses:
+        '204':
+          description: Completion deleted successfully (no content)
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+  
+  /habits/{id}/streak:
+    get:
+      summary: Get habit streak
+      description: Get current streak calculation for a habit
+      tags:
+        - Habits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Streak retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreakInfo'
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+
+components:
+  schemas:
+    CreateHabit:
+      type: object
+      required:
+        - title
+        - frequencyType
+        - frequencyConfig
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          example: Morning meditation
+        frequencyType:
+          type: string
+          enum: [DAILY, WEEKLY, CUSTOM_INTERVAL, MONTHLY, ADVANCED]
+        frequencyConfig:
+          type: object
+          description: Configuration varies by frequency type (validated via Zod)
+          oneOf:
+            - $ref: '#/components/schemas/DailyConfig'
+            - $ref: '#/components/schemas/WeeklyConfig'
+            - $ref: '#/components/schemas/CustomIntervalConfig'
+            - $ref: '#/components/schemas/MonthlyConfig'
+            - $ref: '#/components/schemas/AdvancedConfig'
+        categoryId:
+          $ref: '../openapi.yaml#/components/schemas/UUID'
+    
+    UpdateHabit:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        frequencyType:
+          type: string
+          enum: [DAILY, WEEKLY, CUSTOM_INTERVAL, MONTHLY, ADVANCED]
+        frequencyConfig:
+          type: object
+        categoryId:
+          oneOf:
+            - $ref: '../openapi.yaml#/components/schemas/UUID'
+            - type: 'null'
+    
+    Habit:
+      type: object
+      required:
+        - id
+        - userId
+        - title
+        - frequencyType
+        - frequencyConfig
+        - currentStreak
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '../openapi.yaml#/components/schemas/UUID'
+        userId:
+          $ref: '../openapi.yaml#/components/schemas/UUID'
+        title:
+          type: string
+          example: Morning meditation
+        frequencyType:
+          type: string
+          enum: [DAILY, WEEKLY, CUSTOM_INTERVAL, MONTHLY, ADVANCED]
+        frequencyConfig:
+          type: object
+        currentStreak:
+          type: integer
+          minimum: 0
+          example: 12
+        categoryId:
+          allOf:
+            - $ref: '../openapi.yaml#/components/schemas/UUID'
+          nullable: true
+        category:
+          allOf:
+            - $ref: './categories.yaml#/components/schemas/Category'
+          nullable: true
+        createdAt:
+          $ref: '../openapi.yaml#/components/schemas/ISODateTime'
+        updatedAt:
+          $ref: '../openapi.yaml#/components/schemas/ISODateTime'
+    
+    HabitWithStatus:
+      allOf:
+        - $ref: '#/components/schemas/Habit'
+        - type: object
+          properties:
+            completions:
+              type: array
+              items:
+                $ref: '#/components/schemas/HabitCompletion'
+            currentPeriodStatus:
+              type: string
+              description: Status for current period (e.g., "2/3 this week")
+              example: "2/3 this week"
+            isOnTrack:
+              type: boolean
+              description: Whether habit is completed for current period
+              example: false
+            nextExpectedDate:
+              allOf:
+                - $ref: '../openapi.yaml#/components/schemas/ISODate'
+              description: Next expected completion date
+              nullable: true
+    
+    CreateHabitCompletion:
+      type: object
+      required:
+        - completionDate
+      properties:
+        completionDate:
+          $ref: '../openapi.yaml#/components/schemas/ISODate'
+        completionTime:
+          type: string
+          format: time
+          example: "07:30:00"
+          description: Optional time (required if habit allows multiple per day)
+    
+    HabitCompletion:
+      type: object
+      required:
+        - id
+        - habitId
+        - completionDate
+        - createdAt
+      properties:
+        id:
+          $ref: '../openapi.yaml#/components/schemas/UUID'
+        habitId:
+          $ref: '../openapi.yaml#/components/schemas/UUID'
+        completionDate:
+          $ref: '../openapi.yaml#/components/schemas/ISODate'
+        completionTime:
+          type: string
+          format: time
+          nullable: true
+          example: "07:30:00"
+        createdAt:
+          $ref: '../openapi.yaml#/components/schemas/ISODateTime'
+    
+    StreakInfo:
+      type: object
+      required:
+        - currentStreak
+        - lastCompletionDate
+      properties:
+        currentStreak:
+          type: integer
+          minimum: 0
+          example: 12
+        lastCompletionDate:
+          allOf:
+            - $ref: '../openapi.yaml#/components/schemas/ISODate'
+          nullable: true
+        longestStreak:
+          type: integer
+          minimum: 0
+          example: 28
+        streakStartDate:
+          allOf:
+            - $ref: '../openapi.yaml#/components/schemas/ISODate'
+          nullable: true
+    
+    # Frequency Configs (Zod-validated)
+    DailyConfig:
+      type: object
+      required:
+        - allowMultiplePerDay
+      properties:
+        allowMultiplePerDay:
+          type: boolean
+          example: false
+    
+    WeeklyConfig:
+      type: object
+      required:
+        - timesPerWeek
+      properties:
+        timesPerWeek:
+          type: integer
+          minimum: 1
+          maximum: 7
+          example: 3
+        specificDays:
+          type: array
+          items:
+            type: string
+            enum: [MON, TUE, WED, THU, FRI, SAT, SUN]
+          example: [MON, WED, FRI]
+    
+    CustomIntervalConfig:
+      type: object
+      required:
+        - intervalDays
+      properties:
+        intervalDays:
+          type: integer
+          minimum: 1
+          example: 7
+    
+    MonthlyConfig:
+      type: object
+      required:
+        - timesPerMonth
+      properties:
+        timesPerMonth:
+          type: integer
+          minimum: 1
+          maximum: 31
+          example: 4
+    
+    AdvancedConfig:
+      type: object
+      required:
+        - pattern
+        - rules
+      properties:
+        pattern:
+          type: string
+          example: WEEKDAYS_ONLY
+        rules:
+          type: object
+          additionalProperties: true
+          example:
+            timesPerWeek: 5
+            excludeDays: [SAT, SUN]
+

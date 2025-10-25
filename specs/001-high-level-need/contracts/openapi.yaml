@@ -1,0 +1,195 @@
+openapi: 3.0.3
+info:
+  title: Habits Tracker API
+  description: |
+    RESTful API for the Personal Progress Tracker application.
+    
+    Supports:
+    - User authentication (JWT tokens)
+    - Goal tracking (target-based and continuous counters)
+    - Habit tracking with flexible frequency patterns
+    - Progress visualization data
+    - Category-based organization
+    
+    All endpoints require authentication except `/auth/register` and `/auth/login`.
+  version: 1.0.0
+  contact:
+    name: Habits Tracker API Support
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.habits-tracker.com/api
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User registration and login
+  - name: Goals
+    description: Goal management and progress tracking
+  - name: Habits
+    description: Habit management and completion tracking
+  - name: Categories
+    description: Category management for organizing goals and habits
+
+paths:
+  # Authentication endpoints
+  /auth/register:
+    $ref: './auth.yaml#/paths/~1auth~1register'
+  /auth/login:
+    $ref: './auth.yaml#/paths/~1auth~1login'
+  /auth/refresh:
+    $ref: './auth.yaml#/paths/~1auth~1refresh'
+  /auth/logout:
+    $ref: './auth.yaml#/paths/~1auth~1logout'
+  /auth/me:
+    $ref: './auth.yaml#/paths/~1auth~1me'
+  
+  # Goal endpoints
+  /goals:
+    $ref: './goals.yaml#/paths/~1goals'
+  /goals/{id}:
+    $ref: './goals.yaml#/paths/~1goals~1{id}'
+  /goals/{id}/progress:
+    $ref: './goals.yaml#/paths/~1goals~1{id}~1progress'
+  /goals/{id}/progress/{entryId}:
+    $ref: './goals.yaml#/paths/~1goals~1{id}~1progress~1{entryId}'
+  
+  # Habit endpoints
+  /habits:
+    $ref: './habits.yaml#/paths/~1habits'
+  /habits/{id}:
+    $ref: './habits.yaml#/paths/~1habits~1{id}'
+  /habits/{id}/completions:
+    $ref: './habits.yaml#/paths/~1habits~1{id}~1completions'
+  /habits/{id}/completions/{completionId}:
+    $ref: './habits.yaml#/paths/~1habits~1{id}~1completions~1{completionId}'
+  /habits/{id}/streak:
+    $ref: './habits.yaml#/paths/~1habits~1{id}~1streak'
+  
+  # Category endpoints
+  /categories:
+    $ref: './categories.yaml#/paths/~1categories'
+  /categories/{id}:
+    $ref: './categories.yaml#/paths/~1categories~1{id}'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from /auth/login or /auth/register
+
+  schemas:
+    # Shared error response
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - UNAUTHORIZED
+                - INVALID_TOKEN
+                - FORBIDDEN
+                - NOT_FOUND
+                - DUPLICATE_ENTRY
+                - INTERNAL_ERROR
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Request validation failed
+            details:
+              type: object
+              description: Additional error details (e.g., Zod validation errors)
+    
+    # UUID format
+    UUID:
+      type: string
+      format: uuid
+      example: 550e8400-e29b-41d4-a716-446655440000
+    
+    # ISO Date format (YYYY-MM-DD)
+    ISODate:
+      type: string
+      format: date
+      example: '2025-10-25'
+    
+    # ISO DateTime format
+    ISODateTime:
+      type: string
+      format: date-time
+      example: '2025-10-25T14:30:00Z'
+
+security:
+  - BearerAuth: []
+
+# Global response codes
+responses:
+  Unauthorized:
+    description: Unauthorized - No token or invalid token
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Error'
+        example:
+          error:
+            code: UNAUTHORIZED
+            message: No authentication token provided
+  
+  Forbidden:
+    description: Forbidden - User not allowed to access this resource
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Error'
+        example:
+          error:
+            code: FORBIDDEN
+            message: You do not have permission to access this resource
+  
+  NotFound:
+    description: Resource not found
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Error'
+        example:
+          error:
+            code: NOT_FOUND
+            message: Resource not found
+  
+  ValidationError:
+    description: Request validation failed
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Error'
+        example:
+          error:
+            code: VALIDATION_ERROR
+            message: Request validation failed
+            details:
+              - path: ["title"]
+                message: Required
+  
+  InternalError:
+    description: Internal server error
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Error'
+        example:
+          error:
+            code: INTERNAL_ERROR
+            message: An unexpected error occurred
+

@@ -1,0 +1,501 @@
+paths:
+  /goals:
+    get:
+      summary: List goals
+      description: Get all goals for the authenticated user with optional filtering
+      tags:
+        - Goals
+      parameters:
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [ACTIVE, COMPLETED]
+        - name: goalType
+          in: query
+          description: Filter by goal type
+          schema:
+            type: string
+            enum: [TARGET_BASED, CONTINUOUS_COUNTER]
+        - name: categoryId
+          in: query
+          description: Filter by category
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Goals retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GoalWithProgress'
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+    
+    post:
+      summary: Create goal
+      description: Create a new goal (target-based or continuous counter)
+      tags:
+        - Goals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/CreateTargetBasedGoal'
+                - $ref: '#/components/schemas/CreateContinuousGoal'
+              discriminator:
+                propertyName: goalType
+            examples:
+              targetBased:
+                value:
+                  goalType: TARGET_BASED
+                  title: Save for vacation
+                  unit: dollars
+                  targetValue: 5000
+                  deadline: '2025-12-31'
+                  categoryId: 550e8400-e29b-41d4-a716-446655440000
+              continuous:
+                value:
+                  goalType: CONTINUOUS_COUNTER
+                  title: Days without alcohol
+                  unit: days
+                  categoryId: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '201':
+          description: Goal created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+        '400':
+          $ref: '../openapi.yaml#/responses/ValidationError'
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+  
+  /goals/{id}:
+    get:
+      summary: Get goal
+      description: Get a single goal by ID with progress history
+      tags:
+        - Goals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Goal retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoalWithProgress'
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+    
+    put:
+      summary: Update goal
+      description: Update an existing goal
+      tags:
+        - Goals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGoal'
+      responses:
+        '200':
+          description: Goal updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+        '400':
+          $ref: '../openapi.yaml#/responses/ValidationError'
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+    
+    delete:
+      summary: Delete goal
+      description: Delete a goal and all its progress entries
+      tags:
+        - Goals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      responses:
+        '204':
+          description: Goal deleted successfully (no content)
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+  
+  /goals/{id}/progress:
+    post:
+      summary: Log progress
+      description: Add a new progress entry to a goal
+      tags:
+        - Goals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProgressEntry'
+      responses:
+        '201':
+          description: Progress logged successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressEntry'
+        '400':
+          $ref: '../openapi.yaml#/responses/ValidationError'
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/responses/Forbidden'
+        '404':
+          description: Goal not found
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+  
+  /goals/{id}/progress/{entryId}:
+    put:
+      summary: Update progress entry
+      description: Update an existing progress entry
+      tags:
+        - Goals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+        - name: entryId
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProgressEntry'
+      responses:
+        '200':
+          description: Progress entry updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressEntry'
+        '400':
+          $ref: '../openapi.yaml#/responses/ValidationError'
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+    
+    delete:
+      summary: Delete progress entry
+      description: Delete a progress entry
+      tags:
+        - Goals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+        - name: entryId
+          in: path
+          required: true
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/UUID'
+      responses:
+        '204':
+          description: Progress entry deleted successfully (no content)
+        '401':
+          $ref: '../openapi.yaml#/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/responses/InternalError'
+
+components:
+  schemas:
+    CreateTargetBasedGoal:
+      type: object
+      required:
+        - goalType
+        - title
+        - unit
+        - targetValue
+        - deadline
+      properties:
+        goalType:
+          type: string
+          enum: [TARGET_BASED]
+        title:
+          type: string
+          maxLength: 255
+          example: Save for vacation
+        unit:
+          type: string
+          maxLength: 50
+          example: dollars
+        targetValue:
+          type: number
+          format: float
+          minimum: 0.01
+          example: 5000
+        deadline:
+          $ref: '../openapi.yaml#/components/schemas/ISODate'
+        categoryId:
+          $ref: '../openapi.yaml#/components/schemas/UUID'
+    
+    CreateContinuousGoal:
+      type: object
+      required:
+        - goalType
+        - title
+        - unit
+      properties:
+        goalType:
+          type: string
+          enum: [CONTINUOUS_COUNTER]
+        title:
+          type: string
+          maxLength: 255
+          example: Days without alcohol
+        unit:
+          type: string
+          maxLength: 50
+          example: days
+        categoryId:
+          $ref: '../openapi.yaml#/components/schemas/UUID'
+    
+    UpdateGoal:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        unit:
+          type: string
+          maxLength: 50
+        targetValue:
+          type: number
+          format: float
+          minimum: 0.01
+        deadline:
+          $ref: '../openapi.yaml#/components/schemas/ISODate'
+        categoryId:
+          oneOf:
+            - $ref: '../openapi.yaml#/components/schemas/UUID'
+            - type: 'null'
+        status:
+          type: string
+          enum: [ACTIVE, COMPLETED]
+    
+    Goal:
+      type: object
+      required:
+        - id
+        - userId
+        - title
+        - goalType
+        - unit
+        - currentValue
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '../openapi.yaml#/components/schemas/UUID'
+        userId:
+          $ref: '../openapi.yaml#/components/schemas/UUID'
+        title:
+          type: string
+          example: Save for vacation
+        goalType:
+          type: string
+          enum: [TARGET_BASED, CONTINUOUS_COUNTER]
+        unit:
+          type: string
+          example: dollars
+        targetValue:
+          type: number
+          format: float
+          nullable: true
+          example: 5000
+        deadline:
+          allOf:
+            - $ref: '../openapi.yaml#/components/schemas/ISODate'
+          nullable: true
+        startDate:
+          allOf:
+            - $ref: '../openapi.yaml#/components/schemas/ISODate'
+          nullable: true
+        currentValue:
+          type: number
+          format: float
+          example: 2250
+        status:
+          type: string
+          enum: [ACTIVE, COMPLETED]
+        categoryId:
+          allOf:
+            - $ref: '../openapi.yaml#/components/schemas/UUID'
+          nullable: true
+        category:
+          allOf:
+            - $ref: './categories.yaml#/components/schemas/Category'
+          nullable: true
+        createdAt:
+          $ref: '../openapi.yaml#/components/schemas/ISODateTime'
+        updatedAt:
+          $ref: '../openapi.yaml#/components/schemas/ISODateTime'
+    
+    GoalWithProgress:
+      allOf:
+        - $ref: '#/components/schemas/Goal'
+        - type: object
+          properties:
+            progressEntries:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProgressEntry'
+            progressPercentage:
+              type: number
+              format: float
+              description: For target-based goals - percentage complete
+              example: 45.0
+              nullable: true
+            daysRemaining:
+              type: integer
+              description: For target-based goals - days until deadline
+              example: 125
+              nullable: true
+            onTrack:
+              type: boolean
+              description: For target-based goals - whether user is on pace
+              example: true
+              nullable: true
+            requiredDailyRate:
+              type: number
+              format: float
+              description: For target-based goals - required daily progress to meet deadline
+              example: 22.0
+              nullable: true
+    
+    CreateProgressEntry:
+      type: object
+      required:
+        - value
+        - entryDate
+      properties:
+        value:
+          type: number
+          format: float
+          description: Incremental amount added (positive for progress, negative for resets)
+          example: 250
+        entryDate:
+          $ref: '../openapi.yaml#/components/schemas/ISODate'
+        note:
+          type: string
+          maxLength: 500
+          example: Paycheck deposit
+    
+    UpdateProgressEntry:
+      type: object
+      properties:
+        value:
+          type: number
+          format: float
+        entryDate:
+          $ref: '../openapi.yaml#/components/schemas/ISODate'
+        note:
+          type: string
+          maxLength: 500
+    
+    ProgressEntry:
+      type: object
+      required:
+        - id
+        - goalId
+        - value
+        - entryDate
+        - createdAt
+      properties:
+        id:
+          $ref: '../openapi.yaml#/components/schemas/UUID'
+        goalId:
+          $ref: '../openapi.yaml#/components/schemas/UUID'
+        value:
+          type: number
+          format: float
+          example: 250
+        entryDate:
+          $ref: '../openapi.yaml#/components/schemas/ISODate'
+        note:
+          type: string
+          nullable: true
+          example: Paycheck deposit
+        createdAt:
+          $ref: '../openapi.yaml#/components/schemas/ISODateTime'
+
