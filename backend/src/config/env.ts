@@ -14,7 +14,6 @@ const envSchema = z.object({
   // Server
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().transform(Number).pipe(z.number().int().positive()).default('3000'),
-  API_BASE_URL: z.string().url(),
 
   // Database
   DATABASE_URL: z.string().url().startsWith('postgresql://'),

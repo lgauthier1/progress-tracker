@@ -7,6 +7,9 @@
  * Constitution: TypeScript Strict Mode + Mobile-Ready Architecture
  */
 
+// Load environment variables FIRST (before any other imports)
+import 'dotenv/config'
+
 import express, { Application } from 'express'
 import cors from 'cors'
 import { env } from './config/env'
