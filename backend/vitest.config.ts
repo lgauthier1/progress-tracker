@@ -8,6 +8,10 @@
 
 import { defineConfig } from 'vitest/config'
 import path from 'path'
+import { config } from 'dotenv'
+
+// Load test environment variables if .env.test exists
+config({ path: '.env.test' })
 
 export default defineConfig({
   test: {
