@@ -14,18 +14,34 @@ let accessToken: string
 let userId: string
 
 beforeAll(async () => {
+  // Clean up any existing test data
+  await prisma.progressEntry.deleteMany({})
+  await prisma.goal.deleteMany({})
+  await prisma.user.deleteMany({ where: { email: { contains: 'test-goals' } } })
+
   // Create test user and get token
   const response = await request(app).post('/api/auth/register').send({
     email: 'test-goals@example.com',
     password: 'password123',
     confirmPassword: 'password123',
   })
+  
+  expect(response.status).toBe(201)
+  expect(response.body).toHaveProperty('accessToken')
+  expect(response.body).toHaveProperty('user')
+  
   accessToken = response.body.accessToken
   userId = response.body.user.id
+  
+  console.log(`✅ Test user created: ${userId}`)
 })
 
 afterAll(async () => {
-  await prisma.user.deleteMany({ where: { email: { contains: 'test' } } })
+  // Clean up test data
+  await prisma.progressEntry.deleteMany({})
+  await prisma.goal.deleteMany({})
+  await prisma.user.deleteMany({ where: { email: { contains: 'test-goals' } } })
+  await prisma.$disconnect()
 })
 
 describe('POST /api/goals', () => {

@@ -27,7 +27,7 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().transform((str) => str.split(',')),
 
   // Security
-  BCRYPT_ROUNDS: z.string().transform(Number).pipe(z.number().int().min(8).max(15)).default('10'),
+  BCRYPT_ROUNDS: z.string().transform(Number).pipe(z.number().int().min(4).max(15)).default('10'),
 
   // Logging
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly']).default('info'),
