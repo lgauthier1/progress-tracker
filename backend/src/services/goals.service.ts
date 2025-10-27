@@ -195,6 +195,43 @@ export async function recalculateGoalProgress(goalId: string) {
 }
 
 /**
+ * Check if a target-based goal should be marked as completed
+ * Call this after recalculating progress
+ * 
+ * FR-005: Auto-complete target-based goals when they reach 100%
+ */
+export async function checkAndCompleteGoal(goalId: string) {
+  const goal = await prisma.goal.findUnique({
+    where: { id: goalId },
+  })
+
+  if (!goal) {
+    return
+  }
+
+  // Only auto-complete target-based goals
+  if (goal.goalType !== 'TARGET_BASED' || !goal.targetValue) {
+    return
+  }
+
+  // If already completed, don't change
+  if (goal.status === 'COMPLETED') {
+    return
+  }
+
+  // Check if current value >= target value
+  const currentValue = Number(goal.currentValue)
+  const targetValue = Number(goal.targetValue)
+
+  if (currentValue >= targetValue) {
+    await prisma.goal.update({
+      where: { id: goalId },
+      data: { status: 'COMPLETED' },
+    })
+  }
+}
+
+/**
  * Format goal for API response
  */
 function formatGoal(goal: any) {

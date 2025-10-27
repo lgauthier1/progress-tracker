@@ -84,7 +84,6 @@ if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`)
     console.log(`📍 Environment: ${env.NODE_ENV}`)
-    console.log(`🔗 API Base URL: ${env.API_BASE_URL}`)
     console.log(`✅ Phase 2 (Foundational) infrastructure ready`)
   })
 }

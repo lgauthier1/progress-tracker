@@ -12,19 +12,27 @@ import ProgressHistory from '../components/goals/ProgressHistory.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { currentGoal, progressEntries, fetchGoal, fetchProgressEntries, addProgressEntry, updateProgressEntry, deleteProgressEntry, deleteGoal, isLoading } = useGoals()
+const { currentGoal, progressEntries, fetchGoal, fetchProgressEntries, addProgressEntry, updateProgressEntry, deleteProgressEntry, updateGoal, deleteGoal, isLoading } = useGoals()
 
 const goalId = route.params.id as string
 const progressValue = ref<number>(0)
 const progressNote = ref('')
 const progressDate = ref('')
 
-// Edit modal state
-const showEditModal = ref(false)
+// Edit progress modal state
+const showEditProgressModal = ref(false)
 const editingEntry = ref<ProgressEntry | null>(null)
 const editValue = ref<number>(0)
 const editNote = ref('')
 const editDate = ref('')
+
+// Edit goal modal state
+const showEditGoalModal = ref(false)
+const editGoalTitle = ref('')
+const editGoalUnit = ref('')
+const editGoalTargetValue = ref<number | undefined>(undefined)
+const editGoalDeadline = ref('')
+const editGoalStartDate = ref('')
 
 // Set default date to today
 const setDefaultDate = () => {
@@ -70,8 +78,24 @@ function handleEditEntry(entry: ProgressEntry) {
   editValue.value = entry.value
   editNote.value = entry.note ?? ''
   // Extract YYYY-MM-DD from ISO datetime for the date input
-  editDate.value = entry.entryDate.split('T')[0]
-  showEditModal.value = true
+  editDate.value = entry.entryDate.split('T')[0]!
+  showEditProgressModal.value = true
+}
+
+function handleEditGoal() {
+  if (!currentGoal.value) return
+
+  editGoalTitle.value = currentGoal.value.title
+  editGoalUnit.value = currentGoal.value.unit
+
+  if (currentGoal.value.goalType === 'TARGET_BASED') {
+    editGoalTargetValue.value = currentGoal.value.targetValue
+    editGoalDeadline.value = currentGoal.value.deadline.split('T')[0]!
+  } else {
+    editGoalStartDate.value = currentGoal.value.startDate?.split('T')[0] ?? ''
+  }
+
+  showEditGoalModal.value = true
 }
 
 async function handleUpdateEntry() {
@@ -86,16 +110,45 @@ async function handleUpdateEntry() {
       entryDate: entryDateTime,
       note: editNote.value || undefined,
     })
-    showEditModal.value = false
+    showEditProgressModal.value = false
     editingEntry.value = null
   } catch (err) {
     console.error('Failed to update progress:', err)
   }
 }
 
-function cancelEdit() {
-  showEditModal.value = false
+async function handleUpdateGoal() {
+  if (!currentGoal.value) return
+
+  try {
+    const updateData: any = {
+      title: editGoalTitle.value,
+      unit: editGoalUnit.value,
+    }
+
+    if (currentGoal.value.goalType === 'TARGET_BASED') {
+      updateData.targetValue = editGoalTargetValue.value
+      updateData.deadline = new Date(editGoalDeadline.value).toISOString()
+    } else {
+      if (editGoalStartDate.value) {
+        updateData.startDate = new Date(editGoalStartDate.value).toISOString()
+      }
+    }
+
+    await updateGoal(goalId, updateData)
+    showEditGoalModal.value = false
+  } catch (err) {
+    console.error('Failed to update goal:', err)
+  }
+}
+
+function cancelEditProgress() {
+  showEditProgressModal.value = false
   editingEntry.value = null
+}
+
+function cancelEditGoal() {
+  showEditGoalModal.value = false
 }
 
 async function handleDeleteGoal() {
@@ -141,14 +194,24 @@ function goBack() {
         <Card class="p-6">
           <div class="flex items-start justify-between">
             <h2 class="text-3xl font-bold">{{ currentGoal.title }}</h2>
-            <Button
-              variant="destructive"
-              size="sm"
-              @click="handleDeleteGoal"
-              :disabled="isLoading"
-            >
-              Delete Goal
-            </Button>
+            <div class="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                @click="handleEditGoal"
+                :disabled="isLoading"
+              >
+                Edit Goal
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                @click="handleDeleteGoal"
+                :disabled="isLoading"
+              >
+                Delete Goal
+              </Button>
+            </div>
           </div>
         </Card>
 
@@ -212,7 +275,7 @@ function goBack() {
     </main>
 
     <!-- Edit Progress Dialog (outside v-if/v-else chain) -->
-    <Dialog v-model:open="showEditModal" title="Edit Progress Entry">
+    <Dialog v-model:open="showEditProgressModal" title="Edit Progress Entry">
       <form @submit.prevent="handleUpdateEntry" class="space-y-4">
         <div>
           <label class="block text-sm font-medium mb-2">
@@ -247,7 +310,73 @@ function goBack() {
           <Button type="submit" :disabled="isLoading">
             {{ isLoading ? 'Saving...' : 'Save Changes' }}
           </Button>
-          <Button type="button" variant="outline" @click="cancelEdit">
+          <Button type="button" variant="outline" @click="cancelEditProgress">
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </Dialog>
+
+    <!-- Edit Goal Dialog -->
+    <Dialog v-model:open="showEditGoalModal" title="Edit Goal">
+      <form @submit.prevent="handleUpdateGoal" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Title</label>
+          <Input
+            v-model="editGoalTitle"
+            type="text"
+            required
+            placeholder="Goal title"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Unit</label>
+          <Input
+            v-model="editGoalUnit"
+            type="text"
+            required
+            placeholder="e.g., dollars, kilometers"
+          />
+        </div>
+
+        <!-- Target-based specific fields -->
+        <template v-if="currentGoal?.goalType === 'TARGET_BASED'">
+          <div>
+            <label class="block text-sm font-medium mb-2">Target Value</label>
+            <Input
+              v-model.number="editGoalTargetValue"
+              type="number"
+              step="any"
+              required
+              placeholder="Target value"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">Deadline</label>
+            <Input
+              v-model="editGoalDeadline"
+              type="date"
+              required
+            />
+          </div>
+        </template>
+
+        <!-- Continuous counter specific fields -->
+        <template v-else>
+          <div>
+            <label class="block text-sm font-medium mb-2">Start Date (optional)</label>
+            <Input
+              v-model="editGoalStartDate"
+              type="date"
+            />
+          </div>
+        </template>
+
+        <div class="flex gap-3">
+          <Button type="submit" :disabled="isLoading">
+            {{ isLoading ? 'Saving...' : 'Save Changes' }}
+          </Button>
+          <Button type="button" variant="outline" @click="cancelEditGoal">
             Cancel
           </Button>
         </div>

@@ -9,7 +9,7 @@
 
 import { prisma } from '../models'
 import { createError } from '../middleware/error.middleware'
-import { recalculateGoalProgress } from './goals.service'
+import { recalculateGoalProgress, checkAndCompleteGoal } from './goals.service'
 
 export interface CreateProgressEntryData {
   value: number
@@ -57,16 +57,8 @@ export async function createProgressEntry(
   // Recalculate goal currentValue
   await recalculateGoalProgress(goalId)
 
-  // Check if goal should be marked as completed (for target-based goals)
-  if (goal.goalType === 'TARGET_BASED' && goal.targetValue) {
-    const newCurrentValue = await recalculateGoalProgress(goalId)
-    if (newCurrentValue >= Number(goal.targetValue)) {
-      await prisma.goal.update({
-        where: { id: goalId },
-        data: { status: 'COMPLETED' },
-      })
-    }
-  }
+  // Check if goal should be auto-completed (FR-005)
+  await checkAndCompleteGoal(goalId)
 
   return formatProgressEntry(entry)
 }
@@ -144,6 +136,9 @@ export async function updateProgressEntry(
   // Recalculate goal currentValue
   await recalculateGoalProgress(goalId)
 
+  // Check if goal should be auto-completed (FR-005)
+  await checkAndCompleteGoal(goalId)
+
   return formatProgressEntry(entry)
 }
 
@@ -184,6 +179,9 @@ export async function deleteProgressEntry(userId: string, goalId: string, entryI
 
   // Recalculate goal currentValue
   await recalculateGoalProgress(goalId)
+
+  // Check if goal should be auto-completed (FR-005)
+  await checkAndCompleteGoal(goalId)
 
   return { success: true }
 }
