@@ -41,9 +41,12 @@ onMounted(async () => {
 
 async function handleAddProgress() {
   try {
+    // Convert YYYY-MM-DD to ISO datetime (start of day in local timezone)
+    const entryDateTime = new Date(progressDate.value).toISOString()
+    
     await addProgressEntry(goalId, {
       value: progressValue.value,
-      entryDate: progressDate.value, // Include the selected date
+      entryDate: entryDateTime,
       note: progressNote.value || undefined,
     })
     progressValue.value = 0
@@ -66,7 +69,8 @@ function handleEditEntry(entry: ProgressEntry) {
   editingEntry.value = entry
   editValue.value = entry.value
   editNote.value = entry.note ?? ''
-  editDate.value = entry.entryDate
+  // Extract YYYY-MM-DD from ISO datetime for the date input
+  editDate.value = entry.entryDate.split('T')[0]
   showEditModal.value = true
 }
 
@@ -74,9 +78,12 @@ async function handleUpdateEntry() {
   if (!editingEntry.value) return
 
   try {
+    // Convert YYYY-MM-DD to ISO datetime
+    const entryDateTime = new Date(editDate.value).toISOString()
+    
     await updateProgressEntry(goalId, editingEntry.value.id, {
       value: editValue.value,
-      entryDate: editDate.value,
+      entryDate: entryDateTime,
       note: editNote.value || undefined,
     })
     showEditModal.value = false
