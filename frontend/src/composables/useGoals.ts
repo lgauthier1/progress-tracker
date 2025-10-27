@@ -15,6 +15,7 @@ import type {
   UpdateGoalRequest,
   ProgressEntry,
   CreateProgressEntryRequest,
+  UpdateProgressEntryRequest,
   GoalsQuery,
 } from '@shared/types/goals.types'
 
@@ -166,6 +167,36 @@ export function useGoals() {
     }
   }
 
+  async function updateProgressEntry(
+    goalId: string,
+    entryId: string,
+    data: UpdateProgressEntryRequest
+  ) {
+    try {
+      isLoading.value = true
+      error.value = null
+
+      const response = await goalsApi.updateProgressEntry(goalId, entryId, data)
+
+      // Update in list
+      const index = progressEntries.value.findIndex((e) => e.id === entryId)
+      if (index !== -1) {
+        progressEntries.value[index] = response.entry
+      }
+
+      // Refresh the goal to get updated currentValue
+      await fetchGoal(goalId)
+
+      return response.entry
+    } catch (err) {
+      error.value = 'Failed to update progress entry'
+      console.error(err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   async function deleteProgressEntry(goalId: string, entryId: string) {
     try {
       isLoading.value = true
@@ -210,6 +241,7 @@ export function useGoals() {
     deleteGoal,
     fetchProgressEntries,
     addProgressEntry,
+    updateProgressEntry,
     deleteProgressEntry,
     clearCurrentGoal,
   }
