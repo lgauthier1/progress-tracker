@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+```
+
+Command completed.
+
+The previous shell command ended, so on the next invocation of this tool, you will be reusing the shell.

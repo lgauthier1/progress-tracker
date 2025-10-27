@@ -1,0 +1,48 @@
+<script setup lang="ts">
+import { cn } from '@/lib/utils'
+
+interface Props {
+  modelValue?: string
+  options: { value: string; label: string }[]
+  placeholder?: string
+  disabled?: boolean
+  class?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  placeholder: 'Select an option',
+})
+
+const emit = defineEmits<{
+  'update:modelValue': [value: string]
+}>()
+
+function handleChange(event: Event) {
+  const target = event.target as HTMLSelectElement
+  emit('update:modelValue', target.value)
+}
+</script>
+
+<template>
+  <select
+    :value="modelValue"
+    :disabled="disabled"
+    @change="handleChange"
+    :class="
+      cn(
+        'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
+        'ring-offset-background',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        '[&>option]:bg-background [&>option]:text-foreground',
+        props.class
+      )
+    "
+  >
+    <option value="" disabled>{{ placeholder }}</option>
+    <option v-for="option in options" :key="option.value" :value="option.value">
+      {{ option.label }}
+    </option>
+  </select>
+</template>
+

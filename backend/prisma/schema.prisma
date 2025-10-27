@@ -1,0 +1,161 @@
+// Habits Tracker - Prisma Schema
+// Database: PostgreSQL 16+
+// ORM: Prisma 5.x
+// Constitution: TypeScript Strict Mode compliance
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENTITIES
+// ============================================================================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  timezone     String   @default("UTC") // User's timezone for streak calculations
+  
+  goals        Goal[]
+  habits       Habit[]
+  categories   Category[]
+  
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  @@map("users")
+}
+
+model Goal {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Common fields
+  title       String
+  goalType    GoalType @map("goal_type")
+  unit        String
+  
+  // Target-based fields (NULL for continuous)
+  targetValue  Decimal? @map("target_value") @db.Decimal(10, 2)
+  deadline     DateTime? @db.Date
+  
+  // Continuous counter fields (NULL for target-based)
+  startDate    DateTime? @map("start_date") @db.Date
+  
+  // Computed/cached field (calculated from ProgressEntries)
+  currentValue Decimal  @default(0) @map("current_value") @db.Decimal(10, 2)
+  
+  // Metadata
+  status      GoalStatus @default(ACTIVE)
+  categoryId  String?    @map("category_id")
+  category    Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  progressEntries ProgressEntry[]
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  @@index([userId, status])
+  @@index([userId, goalType])
+  @@index([categoryId])
+  @@map("goals")
+}
+
+enum GoalType {
+  TARGET_BASED
+  CONTINUOUS_COUNTER
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+}
+
+model ProgressEntry {
+  id        String   @id @default(uuid())
+  goalId    String   @map("goal_id")
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  
+  value     Decimal  @db.Decimal(10, 2)  // Incremental amount (positive or negative for resets)
+  entryDate DateTime @map("entry_date") @db.Date
+  note      String?  @db.Text
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@index([goalId, entryDate])
+  @@map("progress_entries")
+}
+
+model Habit {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title           String
+  frequencyType   FrequencyType @map("frequency_type")
+  frequencyConfig Json          @map("frequency_config") // Zod-validated JSON
+  
+  currentStreak   Int      @default(0) @map("current_streak")
+  
+  categoryId      String?  @map("category_id")
+  category        Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  completions     HabitCompletion[]
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@index([userId, frequencyType])
+  @@index([categoryId])
+  @@map("habits")
+}
+
+enum FrequencyType {
+  DAILY
+  WEEKLY
+  CUSTOM_INTERVAL
+  MONTHLY
+  ADVANCED
+}
+
+model HabitCompletion {
+  id             String   @id @default(uuid())
+  habitId        String   @map("habit_id")
+  habit          Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  
+  completionDate DateTime @map("completion_date") @db.Date
+  completionTime DateTime? @map("completion_time") @db.Time // NULL if only once per day
+  
+  createdAt      DateTime @default(now()) @map("created_at")
+  
+  @@unique([habitId, completionDate, completionTime])
+  @@index([habitId, completionDate])
+  @@map("habit_completions")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name      String
+  color     String   @default("#6366f1") // Hex color code
+  
+  goals     Goal[]
+  habits    Habit[]
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("categories")
+}
+
