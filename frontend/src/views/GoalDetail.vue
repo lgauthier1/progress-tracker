@@ -196,49 +196,6 @@ function goBack() {
         />
       </div>
 
-      <!-- Edit Progress Dialog -->
-      <Dialog v-model:open="showEditModal" title="Edit Progress Entry">
-        <form @submit.prevent="handleUpdateEntry" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-2">
-              Amount ({{ currentGoal?.unit }})
-            </label>
-            <Input
-              v-model.number="editValue"
-              type="number"
-              step="any"
-              required
-              placeholder="Enter amount"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-2">Date</label>
-            <Input
-              v-model="editDate"
-              type="date"
-              required
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-2">Note (optional)</label>
-            <textarea
-              v-model="editNote"
-              class="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
-              placeholder="Add a note..."
-              rows="3"
-            ></textarea>
-          </div>
-          <div class="flex gap-3">
-            <Button type="submit" :disabled="isLoading">
-              {{ isLoading ? 'Saving...' : 'Save Changes' }}
-            </Button>
-            <Button type="button" variant="outline" @click="cancelEdit">
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </Dialog>
-
       <div v-else class="text-center py-12">
         <p class="text-muted-foreground">Goal not found.</p>
         <Button variant="secondary" @click="goBack" class="mt-4">
@@ -246,6 +203,49 @@ function goBack() {
         </Button>
       </div>
     </main>
+
+    <!-- Edit Progress Dialog (outside v-if/v-else chain) -->
+    <Dialog v-model:open="showEditModal" title="Edit Progress Entry">
+      <form @submit.prevent="handleUpdateEntry" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">
+            Amount ({{ currentGoal?.unit }})
+          </label>
+          <Input
+            v-model.number="editValue"
+            type="number"
+            step="any"
+            required
+            placeholder="Enter amount"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Date</label>
+          <Input
+            v-model="editDate"
+            type="date"
+            required
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Note (optional)</label>
+          <textarea
+            v-model="editNote"
+            class="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+            placeholder="Add a note..."
+            rows="3"
+          ></textarea>
+        </div>
+        <div class="flex gap-3">
+          <Button type="submit" :disabled="isLoading">
+            {{ isLoading ? 'Saving...' : 'Save Changes' }}
+          </Button>
+          <Button type="button" variant="outline" @click="cancelEdit">
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   </div>
 </template>
 
