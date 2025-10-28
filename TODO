@@ -1,0 +1,15 @@
+# Constituion
+Je génère le Constituion pour lui donner:
+    - ma méthodologie et grand principe (YAGI)
+    - ma stack technique
+# speckit.specify
+1. Je génère le but de mon appli et j'itère avec lui sur les functionnal requirement et user story
+=> On attache de l'importance sur critere acceptance
+
+2. On itère sur les mockjup
+
+3. On vérfie avec lui avant de lancer plan que tout est OK
+
+4. on donne qq point sur la D.A
+
+# speckit.plan
