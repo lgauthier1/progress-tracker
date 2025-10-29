@@ -224,11 +224,11 @@ export function useHabits() {
     }
   }
 
-  // Quick check-in (today's completion)
-  const checkInHabit = async (habitId: string, note?: string) => {
-    const today = new Date().toISOString()
+  // Quick check-in (today's completion or custom date)
+  const checkInHabit = async (habitId: string, note?: string, completionDate?: string) => {
+    const date = completionDate || new Date().toISOString()
     return createHabitCompletion(habitId, {
-      completionDate: today,
+      completionDate: date,
       note,
     })
   }

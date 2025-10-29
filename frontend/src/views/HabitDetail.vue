@@ -33,6 +33,9 @@
               <Button @click="handleCheckIn" :disabled="isCompletedToday" variant="outline">
                 {{ isCompletedToday ? '✓ Completed Today' : 'Log Today' }}
               </Button>
+              <Button @click="openPastDateModal" variant="outline">
+                Log Past Date
+              </Button>
               <div class="relative">
                 <Button @click="toggleMenu" variant="outline" size="sm">
                   ⋮
@@ -115,6 +118,37 @@
           </div>
         </div>
       </div>
+
+      <!-- Past Date Logging Modal -->
+      <div v-if="showPastDateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+          <h3 class="text-lg font-semibold mb-4">Log Past Completion</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-2">Select Date</label>
+              <input
+                v-model="pastDate"
+                type="date"
+                :max="today"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2">Note (optional)</label>
+              <textarea
+                v-model="pastDateNote"
+                placeholder="Add a note about this completion"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="3"
+              ></textarea>
+            </div>
+            <div class="flex gap-2 justify-end">
+              <Button @click="closePastDateModal" variant="outline">Cancel</Button>
+              <Button @click="handlePastDateLog" :disabled="!pastDate">Log Completion</Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -129,11 +163,15 @@ import Button from '../components/ui/Button.vue'
 
 const router = useRouter()
 const route = useRoute()
-const { fetchHabit, checkInHabit, deleteHabitCompletion, deleteHabit, isLoading } = useHabits()
+const { fetchHabit, checkInHabit, deleteHabitCompletion, deleteHabit, createHabitCompletion, isLoading } = useHabits()
 
 const habit = ref(null)
 const habitId = computed(() => route.params.id as string)
 const showMenu = ref(false)
+const showPastDateModal = ref(false)
+const pastDate = ref('')
+const pastDateNote = ref('')
+const today = new Date().toISOString().split('T')[0]
 
 const isCompletedToday = computed(() => {
   if (!habit.value?.completions) return false
@@ -181,6 +219,39 @@ const handleDelete = async () => {
       console.error('Failed to delete habit:', error)
       alert('Failed to delete habit. Please try again.')
     }
+  }
+}
+
+const openPastDateModal = () => {
+  showPastDateModal.value = true
+  pastDate.value = ''
+  pastDateNote.value = ''
+}
+
+const closePastDateModal = () => {
+  showPastDateModal.value = false
+  pastDate.value = ''
+  pastDateNote.value = ''
+}
+
+const handlePastDateLog = async () => {
+  if (!pastDate.value) return
+  
+  try {
+    const completionDate = new Date(pastDate.value).toISOString()
+    console.log('Logging completion for date:', completionDate)
+    
+    // Call createHabitCompletion directly with custom date
+    await createHabitCompletion(habitId.value, {
+      completionDate,
+      note: pastDateNote.value || undefined,
+    })
+    
+    await loadHabit() // Reload to get updated data
+    closePastDateModal()
+  } catch (error) {
+    console.error('Failed to log past completion:', error)
+    alert('Failed to log completion. Please try again.')
   }
 }
 
