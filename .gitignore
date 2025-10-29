@@ -12,6 +12,9 @@ shared/types/**/*.js.map
 
 # Cursor local commands and cache
 .cursor/
+
+# Specify tools and generation artifacts
+.specify/
 # Dependencies
 node_modules/
 */node_modules/
