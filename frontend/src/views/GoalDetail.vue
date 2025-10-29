@@ -95,8 +95,10 @@ onMounted(async () => {
 
 async function handleAddProgress() {
   try {
-    // Convert YYYY-MM-DD to ISO datetime (start of day in local timezone)
-    const entryDateTime = new Date(progressDate.value).toISOString()
+    // Convert YYYY-MM-DD to ISO datetime (avoid timezone offset issues)
+    const [year, month, day] = progressDate.value.split('-').map(Number)
+    const localDate = new Date(year, month - 1, day, 12, 0, 0) // Use noon to avoid timezone issues
+    const entryDateTime = localDate.toISOString()
     
     await addProgressEntry(goalId, {
       value: progressValue.value,
@@ -148,8 +150,10 @@ async function handleUpdateEntry() {
   if (!editingEntry.value) return
 
   try {
-    // Convert YYYY-MM-DD to ISO datetime
-    const entryDateTime = new Date(editDate.value).toISOString()
+    // Convert YYYY-MM-DD to ISO datetime (avoid timezone offset issues)
+    const [year, month, day] = editDate.value.split('-').map(Number)
+    const localDate = new Date(year, month - 1, day, 12, 0, 0) // Use noon to avoid timezone issues
+    const entryDateTime = localDate.toISOString()
     
     await updateProgressEntry(goalId, editingEntry.value.id, {
       value: editValue.value,
@@ -174,10 +178,16 @@ async function handleUpdateGoal() {
 
     if (currentGoal.value.goalType === 'TARGET_BASED') {
       updateData.targetValue = editGoalTargetValue.value
-      updateData.deadline = new Date(editGoalDeadline.value).toISOString()
+      // Convert YYYY-MM-DD to ISO datetime (avoid timezone offset issues)
+      const [year, month, day] = editGoalDeadline.value.split('-').map(Number)
+      const localDate = new Date(year, month - 1, day, 12, 0, 0)
+      updateData.deadline = localDate.toISOString()
     } else {
       if (editGoalStartDate.value) {
-        updateData.startDate = new Date(editGoalStartDate.value).toISOString()
+        // Convert YYYY-MM-DD to ISO datetime (avoid timezone offset issues)
+        const [year, month, day] = editGoalStartDate.value.split('-').map(Number)
+        const localDate = new Date(year, month - 1, day, 12, 0, 0)
+        updateData.startDate = localDate.toISOString()
       }
     }
 

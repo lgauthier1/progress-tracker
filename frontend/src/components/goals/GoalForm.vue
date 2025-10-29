@@ -57,20 +57,31 @@ function handleSubmit() {
   if (!isValid.value) return
 
   if (goalType.value === 'TARGET_BASED') {
+    // Convert YYYY-MM-DD to ISO datetime (avoid timezone offset issues)
+    const [year, month, day] = deadline.value.split('-').map(Number)
+    const localDate = new Date(year, month - 1, day, 12, 0, 0)
+    
     const data: CreateGoalRequest = {
       goalType: 'TARGET_BASED',
       title: title.value,
       unit: unit.value,
       targetValue: targetValue.value!,
-      deadline: new Date(deadline.value).toISOString(),
+      deadline: localDate.toISOString(),
     }
     emit('submit', data)
   } else {
+    // Convert YYYY-MM-DD to ISO datetime (avoid timezone offset issues)
+    const startDateISO = startDate.value ? (() => {
+      const [year, month, day] = startDate.value.split('-').map(Number)
+      const localDate = new Date(year, month - 1, day, 12, 0, 0)
+      return localDate.toISOString()
+    })() : undefined
+    
     const data: CreateGoalRequest = {
       goalType: 'CONTINUOUS_COUNTER',
       title: title.value,
       unit: unit.value,
-      startDate: startDate.value ? new Date(startDate.value).toISOString() : undefined,
+      startDate: startDateISO,
     }
     emit('submit', data)
   }

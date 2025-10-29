@@ -34,7 +34,14 @@ export const HabitCompletionSchema = z.object({
 export type HabitCompletion = z.infer<typeof HabitCompletionSchema>
 
 export const CreateHabitCompletionRequestSchema = z.object({
-  completionDate: z.string().datetime().optional(),
+  completionDate: z.string().refine(
+    (val) => {
+      // Accept either ISO datetime or YYYY-MM-DD format
+      return z.string().datetime().safeParse(val).success || 
+             /^\d{4}-\d{2}-\d{2}$/.test(val)
+    },
+    { message: "Must be a valid datetime or YYYY-MM-DD format" }
+  ).optional(),
   note: z.string().max(255).optional(),
 })
 export type CreateHabitCompletionRequest = z.infer<typeof CreateHabitCompletionRequestSchema>

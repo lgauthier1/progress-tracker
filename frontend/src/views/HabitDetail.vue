@@ -86,13 +86,10 @@
           </div>
         </div>
 
-        <!-- Calendar Heatmap (Placeholder) -->
+        <!-- Calendar Heatmap -->
         <div class="bg-card rounded-lg border p-6 mb-6">
           <h3 class="text-lg font-semibold mb-4">Completion Calendar</h3>
-          <div class="text-center py-8 text-muted-foreground">
-            <p>📅 Calendar heatmap will be implemented here</p>
-            <p class="text-sm">Showing completion history for the last 3 months</p>
-          </div>
+          <HabitCalendarChart :habit-id="habitId" />
         </div>
 
         <!-- Recent Completions -->
@@ -160,6 +157,7 @@ import { useHabits } from '../composables/useHabits'
 import { format, isToday } from 'date-fns'
 import AppHeader from '../components/layout/AppHeader.vue'
 import Button from '../components/ui/Button.vue'
+import HabitCalendarChart from '../components/habits/HabitCalendarChart.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -191,7 +189,15 @@ const weeklyCompletions = computed(() => {
 })
 
 const formatDate = (dateString: string) => {
-  return format(new Date(dateString), 'MMM d, yyyy')
+  // Backend now sends YYYY-MM-DD format directly
+  if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const [year, month, day] = dateString.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
+    return format(date, 'MMM d, yyyy')
+  }
+  // Fallback for ISO format (shouldn't happen anymore)
+  const date = new Date(dateString)
+  return format(date, 'MMM d, yyyy')
 }
 
 const goBack = () => {
@@ -238,8 +244,10 @@ const handlePastDateLog = async () => {
   if (!pastDate.value) return
   
   try {
-    const completionDate = new Date(pastDate.value).toISOString()
-    console.log('Logging completion for date:', completionDate)
+    // Send YYYY-MM-DD directly to avoid timezone conversion issues
+    const completionDate = pastDate.value
+    
+    console.log('Logging completion for date:', completionDate, 'from input:', pastDate.value)
     
     // Call createHabitCompletion directly with custom date
     await createHabitCompletion(habitId.value, {

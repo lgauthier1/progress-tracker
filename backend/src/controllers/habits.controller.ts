@@ -18,7 +18,7 @@ declare global {
 
 // Helper function to map habit from DB to API format
 function mapHabitForApi(habit: any) {
-  return {
+  const mapped = {
     ...habit,
     frequency: habit.frequencyType, // Map frequencyType to frequency
     frequencyType: undefined, // Remove frequencyType from response
@@ -26,12 +26,28 @@ function mapHabitForApi(habit: any) {
     description: null, // Add description field for API compatibility (not stored in DB)
     status: 'ACTIVE', // Add status field for API compatibility (not stored in DB)
   }
+  
+  // Map completions if they exist
+  if (habit.completions && Array.isArray(habit.completions)) {
+    mapped.completions = habit.completions.map(mapHabitCompletionForApi)
+  }
+  
+  return mapped
 }
 
 // Helper function to map habit completion from DB to API format
 function mapHabitCompletionForApi(completion: any) {
+  // Format completionDate as YYYY-MM-DD using UTC date components to avoid timezone issues
+  const date = new Date(completion.completionDate)
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  const completionDateStr = `${year}-${month}-${day}`
+  
+  
   return {
     ...completion,
+    completionDate: completionDateStr,
     note: null, // Add note field for API compatibility (not stored in DB)
   }
 }
@@ -281,10 +297,29 @@ export const habitsController = {
         throw new ApiError('Habit not found', 404)
       }
 
+      // Parse completion date: accept ISO datetime or YYYY-MM-DD
+      let parsedDate: Date
+      if (typeof completionDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(completionDate)) {
+        // YYYY-MM-DD format: create UTC date to avoid timezone conversion issues
+        const [y, m, d] = completionDate.split('-').map(Number)
+        parsedDate = new Date(Date.UTC(y, m - 1, d, 0, 0, 0))
+      } else {
+        // ISO format: parse and convert to UTC date
+        const isoDate = new Date(completionDate)
+        if (isNaN(isoDate.getTime())) {
+          throw new ApiError('Invalid date format', 400)
+        }
+        // Extract date components and create UTC date
+        const y = isoDate.getUTCFullYear()
+        const m = isoDate.getUTCMonth()
+        const d = isoDate.getUTCDate()
+        parsedDate = new Date(Date.UTC(y, m, d, 0, 0, 0))
+      }
+      
       const completion = await prisma.habitCompletion.create({
         data: {
           habitId: id,
-          completionDate: new Date(completionDate),
+          completionDate: parsedDate,
           // Note: 'note' field doesn't exist in Prisma schema, so we ignore it
         },
       })
@@ -441,9 +476,13 @@ export const habitsController = {
         select: { completionDate: true },
       })
 
-      // Group completions by date
+      // Group completions by date using UTC date components to match storage format
       const calendarData = completions.reduce((acc, completion) => {
-        const dateKey = format(completion.completionDate, 'yyyy-MM-dd')
+        const date = new Date(completion.completionDate)
+        const year = date.getUTCFullYear()
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+        const day = String(date.getUTCDate()).padStart(2, '0')
+        const dateKey = `${year}-${month}-${day}`
         acc[dateKey] = (acc[dateKey] || 0) + 1
         return acc
       }, {} as Record<string, number>)
