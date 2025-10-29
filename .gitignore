@@ -7,6 +7,11 @@ frontend/src/**/*.js.map
 
 # Shared build output
 shared/dist/
+shared/types/**/*.js
+shared/types/**/*.js.map
+
+# Cursor local commands and cache
+.cursor/
 # Dependencies
 node_modules/
 */node_modules/
