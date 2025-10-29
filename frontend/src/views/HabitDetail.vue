@@ -33,9 +33,21 @@
               <Button @click="handleCheckIn" :disabled="isCompletedToday" variant="outline">
                 {{ isCompletedToday ? '✓ Completed Today' : 'Log Today' }}
               </Button>
-              <Button variant="outline" size="sm">
-                ⋮
-              </Button>
+              <div class="relative">
+                <Button @click="toggleMenu" variant="outline" size="sm">
+                  ⋮
+                </Button>
+                <div v-if="showMenu" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                  <div class="py-1">
+                    <button @click="handleEdit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      Edit Habit
+                    </button>
+                    <button @click="handleDelete" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                      Delete Habit
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -117,10 +129,11 @@ import Button from '../components/ui/Button.vue'
 
 const router = useRouter()
 const route = useRoute()
-const { fetchHabit, checkInHabit, deleteHabitCompletion, isLoading } = useHabits()
+const { fetchHabit, checkInHabit, deleteHabitCompletion, deleteHabit, isLoading } = useHabits()
 
 const habit = ref(null)
 const habitId = computed(() => route.params.id as string)
+const showMenu = ref(false)
 
 const isCompletedToday = computed(() => {
   if (!habit.value?.completions) return false
@@ -145,6 +158,30 @@ const formatDate = (dateString: string) => {
 
 const goBack = () => {
   router.push('/habits')
+}
+
+const toggleMenu = () => {
+  showMenu.value = !showMenu.value
+}
+
+const handleEdit = () => {
+  showMenu.value = false
+  // TODO: Open edit modal
+  console.log('Edit habit:', habitId.value)
+}
+
+const handleDelete = async () => {
+  showMenu.value = false
+  if (confirm('Are you sure you want to delete this habit? This action cannot be undone.')) {
+    try {
+      await deleteHabit(habitId.value)
+      // Redirect to habits list after successful deletion
+      router.push('/habits')
+    } catch (error) {
+      console.error('Failed to delete habit:', error)
+      alert('Failed to delete habit. Please try again.')
+    }
+  }
 }
 
 const loadHabit = async () => {
