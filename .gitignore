@@ -1,3 +1,12 @@
+# Ignore source maps and generated JS artifacts in src (built by tooling)
+*.map
+frontend/src/**/*.vue.js
+frontend/src/**/*.vue.js.map
+frontend/src/**/*.js
+frontend/src/**/*.js.map
+
+# Shared build output
+shared/dist/
 # Dependencies
 node_modules/
 */node_modules/
