@@ -13,7 +13,7 @@ import {
   RegisterRequest,
   RegisterResponse,
   UserProfileResponse,
-} from '@shared/types/auth.types'
+} from '../../types/auth.types'
 
 /**
  * Register a new user

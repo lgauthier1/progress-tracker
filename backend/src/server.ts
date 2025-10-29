@@ -58,10 +58,11 @@ app.get('/health', (_req, res) => {
 
 import authRoutes from './routes/auth.routes'
 import goalsRoutes from './routes/goals.routes'
+import habitsRoutes from './routes/habits.routes'
 
 app.use('/api/auth', authRoutes)
 app.use('/api/goals', goalsRoutes)
-// app.use('/api/habits', habitsRoutes) // Phase 5 - User Story 3
+app.use('/api/habits', habitsRoutes)
 // app.use('/api/categories', categoriesRoutes) // Phase 6 - User Story 4
 
 // ============================================================================

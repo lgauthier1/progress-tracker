@@ -3,15 +3,17 @@ import { onMounted, ref } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { useGoals } from '../composables/useGoals'
 import { useRouter } from 'vue-router'
-import type { CreateGoalRequest } from '@shared/types/goals.types'
+import type { CreateGoalRequest } from '../../types/goals.types'
 import Button from '../components/ui/Button.vue'
 import Dialog from '../components/ui/Dialog.vue'
 import GoalCard from '../components/goals/GoalCard.vue'
 import GoalForm from '../components/goals/GoalForm.vue'
+import DashboardStats from '../components/goals/DashboardStats.vue'
+import AppHeader from '../components/layout/AppHeader.vue'
 
 const router = useRouter()
 const { currentUser, logout } = useAuth()
-const { activeGoals, fetchGoals, createGoal, isLoading } = useGoals()
+const { goals, activeGoals, fetchGoals, createGoal, isLoading } = useGoals()
 
 const showCreateModal = ref(false)
 
@@ -43,20 +45,7 @@ async function handleLogout() {
 
 <template>
   <div class="min-h-screen bg-background">
-    <header class="border-b bg-background">
-      <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-        <h1 class="text-2xl font-bold">Habits Tracker</h1>
-        <div class="flex items-center gap-4">
-          <span class="text-sm text-muted-foreground">{{ currentUser?.email }}</span>
-          <button
-            @click="handleLogout"
-            class="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-    </header>
+    <AppHeader />
 
     <main class="container mx-auto px-4 py-8">
       <div class="flex items-center justify-between mb-8">
@@ -65,6 +54,9 @@ async function handleLogout() {
           + New Goal
         </Button>
       </div>
+
+      <!-- Dashboard Statistics -->
+      <DashboardStats :goals="goals" />
 
       <div v-if="isLoading" class="text-center py-12">
         <p class="text-muted-foreground">Loading goals...</p>

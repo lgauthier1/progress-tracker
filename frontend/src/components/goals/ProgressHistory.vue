@@ -7,7 +7,7 @@
  * Constitution: TypeScript Strict Mode
  */
 
-import type { ProgressEntry } from '@shared/types/goals.types'
+import type { ProgressEntry } from '../../types/goals.types'
 import Card from '../ui/Card.vue'
 import Button from '../ui/Button.vue'
 

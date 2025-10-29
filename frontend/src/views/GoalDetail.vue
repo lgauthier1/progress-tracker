@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGoals } from '../composables/useGoals'
-import type { ProgressEntry } from '@shared/types/goals.types'
+import type { ProgressEntry } from '../../types/goals.types'
 import Button from '../components/ui/Button.vue'
 import Input from '../components/ui/Input.vue'
 import Card from '../components/ui/Card.vue'
 import Dialog from '../components/ui/Dialog.vue'
+import AppHeader from '../components/layout/AppHeader.vue'
 import ProgressOverview from '../components/goals/ProgressOverview.vue'
 import ProgressHistory from '../components/goals/ProgressHistory.vue'
+import ProgressTabs from '../components/goals/ProgressTabs.vue'
+import { calculateProgressStats, ProgressChartData } from '../utils/progressStats'
 
 const route = useRoute()
 const router = useRouter()
@@ -41,6 +44,49 @@ const setDefaultDate = () => {
 }
 
 setDefaultDate()
+
+// Computed properties for charts and stats
+const progressStats = computed(() => {
+  if (!currentGoal.value || !progressEntries.value.length) {
+    return {
+      totalProgress: 0,
+      averagePerDay: 0,
+      daysActive: 0,
+      currentStreak: 0,
+    }
+  }
+
+  const entries = progressEntries.value.map(entry => ({
+    value: entry.value,
+    entryDate: entry.entryDate,
+  }))
+
+  return calculateProgressStats(
+    entries,
+    currentGoal.value.goalType === 'TARGET_BASED' ? currentGoal.value.targetValue : undefined,
+    currentGoal.value.goalType === 'TARGET_BASED' ? currentGoal.value.deadline : undefined
+  )
+})
+
+const chartData = computed((): ProgressChartData | null => {
+  if (!currentGoal.value || !progressEntries.value.length) {
+    return null
+  }
+
+  // Sort entries by date
+  const sortedEntries = [...progressEntries.value].sort((a, b) => 
+    new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime()
+  )
+
+  return {
+    dates: sortedEntries.map(entry => entry.entryDate.split('T')[0]!), // Extract YYYY-MM-DD
+    values: sortedEntries.map(entry => entry.value),
+    goalTitle: currentGoal.value.title,
+    unit: currentGoal.value.unit,
+    targetValue: currentGoal.value.goalType === 'TARGET_BASED' ? currentGoal.value.targetValue : undefined,
+    currentValue: currentGoal.value.currentValue,
+  }
+})
 
 onMounted(async () => {
   await fetchGoal(goalId)
@@ -175,14 +221,14 @@ function goBack() {
 
 <template>
   <div class="min-h-screen bg-background">
-    <header class="border-b bg-background">
-      <div class="container mx-auto px-4 py-4">
-        <button @click="goBack" class="text-sm text-muted-foreground hover:text-foreground mb-2">
-          ← Back to Dashboard
-        </button>
-        <h1 class="text-2xl font-bold">Goal Details</h1>
-      </div>
-    </header>
+    <AppHeader />
+    
+    <div class="container mx-auto px-4 py-4">
+      <button @click="goBack" class="text-sm text-muted-foreground hover:text-foreground mb-2">
+        ← Back to Dashboard
+      </button>
+      <h1 class="text-2xl font-bold">Goal Details</h1>
+    </div>
 
     <main class="container mx-auto px-4 py-8">
       <div v-if="isLoading" class="text-center py-12">
@@ -217,6 +263,17 @@ function goBack() {
 
         <!-- Progress Overview -->
         <ProgressOverview :goal="currentGoal" />
+
+        <!-- Progress Statistics & Chart -->
+        <Card class="p-6">
+          <h3 class="text-xl font-semibold mb-4">Progress Analytics</h3>
+          <ProgressTabs
+            :goal="currentGoal"
+            :stats="progressStats"
+            :chart-data="chartData"
+            :loading="isLoading"
+          />
+        </Card>
 
         <!-- Add Progress Form -->
         <Card class="p-6">

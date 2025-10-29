@@ -8,7 +8,7 @@
  */
 
 import { computed } from 'vue'
-import type { Goal } from '@shared/types/goals.types'
+import type { Goal } from '../../types/goals.types'
 import Card from '../ui/Card.vue'
 import Badge from '../ui/Badge.vue'
 

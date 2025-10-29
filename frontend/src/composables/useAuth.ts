@@ -8,9 +8,8 @@
  */
 
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import * as authApi from '../services/api/auth.api'
-import type { LoginRequest, RegisterRequest, User } from '@shared/types/auth.types'
+import type { LoginRequest, RegisterRequest, User } from '../../types/auth.types'
 
 // Global auth state (reactive)
 const currentUser = ref<User | null>(null)
@@ -18,8 +17,6 @@ const isLoading = ref(false)
 const error = ref<string | null>(null)
 
 export function useAuth() {
-  const router = useRouter()
-
   // Computed
   const isAuthenticated = computed(() => currentUser.value !== null)
   const hasToken = computed(() => !!localStorage.getItem('accessToken'))
@@ -40,7 +37,7 @@ export function useAuth() {
       currentUser.value = response.user
 
       // Redirect to dashboard
-      router.push('/')
+      window.location.href = '/'
     } catch (err) {
       error.value = 'Login failed. Please check your credentials.'
       throw err
@@ -64,7 +61,7 @@ export function useAuth() {
       currentUser.value = response.user
 
       // Redirect to dashboard
-      router.push('/')
+      window.location.href = '/'
     } catch (err) {
       error.value = 'Registration failed. Please try again.'
       throw err
@@ -78,7 +75,7 @@ export function useAuth() {
       await authApi.logout()
     } finally {
       currentUser.value = null
-      router.push('/login')
+      window.location.href = '/login'
     }
   }
 
